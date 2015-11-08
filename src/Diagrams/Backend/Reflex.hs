@@ -148,10 +148,23 @@ instance Renderable (Path V2 Double) Reflex where
 instance Default (Options Reflex V2 Double) where
   def = ReflexOptions absolute mempty
 
+Data DiaEv t a = DiaEv
+  { -- diaMouseclickEv :: Event t a
+  , diaMousedownEv :: Event t a
+  , diaMouseupEv :: Event t a
+  }
+
+
 reflexDia :: forall t m a. (Monoid' a, MonadWidget t m) =>
-             Options Reflex V2 Double -> QDiagram Reflex V2 Double a -> m ()
-reflexDia opts dia = mkWidget svg where
-  (_t, svg) = renderDiaT Reflex opts dia
+             Options Reflex V2 Double -> QDiagram Reflex V2 Double a -> m (DiaEv t a)
+reflexDia opts dia = do
+  (clicks, _) <- svgAttr' n as $ mapM_ mkWidget cs
+   md <- domEvent clicks Mousedown
+   me <- domEvent clicks Mouseup
+   return $ DiaEv (annotate md) (annotate mu)
+    where
+     (t, (Element n as cs)) = renderDiaT Reflex opts dia
+     annotate = runQuery (query dia) . transform (inverse t) . v2
 
   -- instance (Hashable n, SVGFloat n) => Hashable (Options Reflex V2 Double) where
 --   hashWithSalt s  (ReflexOptions sz sa) =
