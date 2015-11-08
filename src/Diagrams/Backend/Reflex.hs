@@ -146,7 +146,7 @@ instance Renderable (Path V2 Double) Reflex where
   render _ = Render . R.renderPath
 
 instance Default (Options Reflex V2 Double) where
-  def = Reflex absolute mempty
+  def = ReflexOptions absolute mempty
 
 reflexDia :: forall t m a. (Monoid' a, MonadWidget t m) =>
              Options Reflex V2 Double -> QDiagram Reflex V2 Double a -> m ()
