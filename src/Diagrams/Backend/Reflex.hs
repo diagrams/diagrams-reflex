@@ -30,12 +30,13 @@
 -----------------------------------------------------------------------------
 
 module Diagrams.Backend.Reflex
-  ( Reflex(..) -- rendering token
+  ( ReflexSvg(..) -- rendering token
   , B
     -- for rendering options specific to Reflex
   , Options(..), sizeSpec, svgAttributes
   -- ,svgDefinitions, idPrefix, svgAttributes, generateDoctype
-
+  , DiaEv(..)
+  , reflexDia
   ) where
 
 #if __GLASGOW_HASKELL__ < 710
@@ -76,8 +77,12 @@ import           Diagrams.TwoD.Text
 -- from containers
 import Data.Map (Map, singleton, fromList)
 
+-- from reflex
+import Reflex
+
 -- from reflex-dom
 import Reflex.Dom.Class
+import Reflex.Dom.Widget.Basic
 
 -- from reflex-dom-contrib
 import Reflex.Dom.Contrib.Widgets.Svg
@@ -86,35 +91,35 @@ import Reflex.Dom.Contrib.Widgets.Svg
 import           Graphics.Rendering.Reflex   (Element(..), RenderM)
 import qualified Graphics.Rendering.Reflex   as R
 
--- | @Reflex@ is simply a token used to identify this rendering backend
+-- | @ReflexSvg@ is simply a token used to identify this rendering backend
 --   (to aid type inference).
-data Reflex = Reflex
+data ReflexSvg = ReflexSvg
   deriving (Show)
 
-type B = Reflex
+type B = ReflexSvg
 
-type instance V Reflex = V2
-type instance N Reflex = Double
+type instance V ReflexSvg = V2
+type instance N ReflexSvg = Double
 
-instance Monoid (Render Reflex V2 Double) where
+instance Monoid (Render ReflexSvg V2 Double) where
   mempty = Render mempty
   Render r1 `mappend` Render r2_ = Render $ mappend r1 r2_
 
-instance Backend Reflex V2 Double where
-  newtype Render  Reflex V2 Double = Render RenderM
-  type    Result  Reflex V2 Double = Element
-  data    Options Reflex V2 Double = ReflexOptions
+instance Backend ReflexSvg V2 Double where
+  newtype Render  ReflexSvg V2 Double = Render RenderM
+  type    Result  ReflexSvg V2 Double = Element
+  data    Options ReflexSvg V2 Double = ReflexOptions
     { _size            :: SizeSpec V2 Double   -- ^ The requested size.
     , _svgAttributes   :: R.Attrs
                           -- ^ Attributes to apply to the entire svg element.
     }
 
-  renderRTree :: Reflex -> Options Reflex V2 Double -> RTree Reflex V2 Double Annotation -> Result Reflex V2 Double
+  renderRTree :: ReflexSvg -> Options ReflexSvg V2 Double -> RTree ReflexSvg V2 Double Annotation -> Result ReflexSvg V2 Double
   renderRTree _ opts rt = Element "svg" attrs $ runReader (rtree rt) mempty
     where
-      rtree :: RTree Reflex V2 Double Annotation -> RenderM
+      rtree :: RTree ReflexSvg V2 Double Annotation -> RenderM
       rtree (Node n rs) = case n of
-        RPrim p                 -> unRender $ render Reflex p
+        RPrim p                 -> unRender $ render ReflexSvg p
         RStyle sty              -> local (<> sty) r
         _                       -> r
         where
@@ -127,51 +132,39 @@ instance Backend Reflex V2 Double where
   adjustDia c opts d = adjustDia2D sizeSpec c opts (d # reflectY)
 
 -- | Lens onto the size of the options.
-sizeSpec :: Lens' (Options Reflex V2 Double) (SizeSpec V2 Double)
+sizeSpec :: Lens' (Options ReflexSvg V2 Double) (SizeSpec V2 Double)
 sizeSpec f opts = f (_size opts) <&> \s -> opts { _size = s }
 
 -- | Lens onto the svgAttributes field of the options. This field
 --   is provided to supply SVG attributes to the entire diagram.
-svgAttributes :: Lens' (Options Reflex V2 Double) R.Attrs
+svgAttributes :: Lens' (Options ReflexSvg V2 Double) R.Attrs
 svgAttributes f opts =
   f (_svgAttributes opts) <&> \ds -> opts { _svgAttributes = ds }
 
 mkWidget :: forall t m. MonadWidget t m => Element -> m ()
 mkWidget (Element el attrs children) = svgAttr el attrs (mapM_ mkWidget children)
 
-unRender :: Render Reflex V2 Double -> RenderM
+unRender :: Render ReflexSvg V2 Double -> RenderM
 unRender (Render els) = els
 
-instance Renderable (Path V2 Double) Reflex where
+instance Renderable (Path V2 Double) ReflexSvg where
   render _ = Render . R.renderPath
 
-instance Default (Options Reflex V2 Double) where
+instance Default (Options ReflexSvg V2 Double) where
   def = ReflexOptions absolute mempty
 
-Data DiaEv t a = DiaEv
-  { -- diaMouseclickEv :: Event t a
-  , diaMousedownEv :: Event t a
-  , diaMouseupEv :: Event t a
-  }
-
+data DiaEv t a = DiaEv
+                 { diaMousedownEv :: Event t a
+                 , diaMouseupEv :: Event t a
+                 }
 
 reflexDia :: forall t m a. (Monoid' a, MonadWidget t m) =>
-             Options Reflex V2 Double -> QDiagram Reflex V2 Double a -> m (DiaEv t a)
+             Options ReflexSvg V2 Double -> QDiagram ReflexSvg V2 Double a -> m (DiaEv t a)
 reflexDia opts dia = do
   (evs, _) <- svgAttr' n as $ mapM_ mkWidget cs
-   md <- domEvent Mousedown evs
-   me <- domEvent Mouseup evs
-   return $ DiaEv (annotate md) (annotate mu)
+  let md = domEvent Mousedown evs
+  let mu = domEvent Mouseup evs
+  return $ DiaEv (annotate <$> md) (annotate <$> mu)
     where
-     (t, (Element n as cs)) = renderDiaT Reflex opts dia
-     annotate = runQuery (query dia) . transform (inverse t) . v2
-
-  -- instance (Hashable n, SVGFloat n) => Hashable (Options Reflex V2 Double) where
---   hashWithSalt s  (ReflexOptions sz sa) =
---     s  `hashWithSalt`
---     sz `hashWithSalt`
---     ds `hashWithSalt`
---     ia `hashWithSalt`
---     sa `hashWithSalt`
---     gd
---       where ds = fmap renderBS defs
+      (t, (Element n as cs)) = renderDiaT ReflexSvg opts dia
+      annotate = runQuery (query dia) . transform (inv t) . fmap fromIntegral . p2

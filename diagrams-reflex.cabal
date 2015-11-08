@@ -21,9 +21,7 @@ Source-repository head
 
 Library
   Exposed-modules:     Diagrams.Backend.Reflex
-                       -- Diagrams.Backend.Reflex.CmdLine
-                       -- Diagrams.Backend.Reflex.Attributes
-  -- Other-modules:       Graphics.Rendering.Reflex
+  Other-modules:       Graphics.Rendering.Reflex
   Hs-source-dirs:      src
   Build-depends:       base                 >= 4.3   && < 4.9
                      , old-time
@@ -49,8 +47,6 @@ Library
                      , hashable             >= 1.1   && < 1.3
                      , optparse-applicative >= 0.10  && < 0.13
                      , semigroups           >= 0.13  && < 0.18
-  if impl(ghc < 7.6)
-    build-depends:     ghc-prim
 
   Ghc-options:         -Wall
 
