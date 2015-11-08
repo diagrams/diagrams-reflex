@@ -25,10 +25,8 @@ main = appMain app
 
 app :: MonadWidget t m => m ()
 app = do
-  -- reflexDia def (circle 100 :: Diagram B)
-  (ev, _) <- svgAttr "svg" ("width" =: "200" <> "height" =: "200") $
-    svgAttr' "circle" ("cx" =: "100" <> "cy" =: "100" <> "r" =: "50") (return ())
-  ct <- count $ domEvent Mouseup ev
+  ev <- reflexDia def (circle 100 :: Diagram B)
+  ct <- count $ diaMousedownEv ev
   dynText =<< mapDyn counter ct
   return ()
 
