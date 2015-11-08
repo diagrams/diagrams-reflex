@@ -158,9 +158,9 @@ Data DiaEv t a = DiaEv
 reflexDia :: forall t m a. (Monoid' a, MonadWidget t m) =>
              Options Reflex V2 Double -> QDiagram Reflex V2 Double a -> m (DiaEv t a)
 reflexDia opts dia = do
-  (clicks, _) <- svgAttr' n as $ mapM_ mkWidget cs
-   md <- domEvent clicks Mousedown
-   me <- domEvent clicks Mouseup
+  (evs, _) <- svgAttr' n as $ mapM_ mkWidget cs
+   md <- domEvent Mousedown evs
+   me <- domEvent Mouseup evs
    return $ DiaEv (annotate md) (annotate mu)
     where
      (t, (Element n as cs)) = renderDiaT Reflex opts dia
