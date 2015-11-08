@@ -1,4 +1,4 @@
-diagrams-reflex  [![Build Status](https://travis-ci.org/diagrams/diagrams-svg.png?branch=master)](http://travis-ci.org/diagrams/diagrams-svg)
+diagrams-reflex  [![Build Status](https://travis-ci.org/diagrams/diagrams-reflex.png?branch=master)](http://travis-ci.org/diagrams/diagrams-reflex)
 ------------
 
 
