@@ -1,3 +1,5 @@
+sudo: false
+
 before_install:
   # stack
   - mkdir -p ~/.local/bin
@@ -19,3 +21,8 @@ install:
 
 script:
   - stack --no-terminal --skip-ghc-check test
+
+# Caching so the next build will be fast too.
+cache:
+  directories:
+  - $HOME/.stack
