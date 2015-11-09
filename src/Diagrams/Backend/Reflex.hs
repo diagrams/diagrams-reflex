@@ -167,4 +167,4 @@ reflexDia opts dia = do
   return $ DiaEv (annotate <$> md) (annotate <$> mu)
     where
       (t, (Element n as cs)) = renderDiaT ReflexSvg opts dia
-      annotate = runQuery (query dia) . transform (inv t) . fmap fromIntegral . p2
+      annotate = Diagrams.Prelude.sample dia . transform (inv t) . fmap fromIntegral . p2
