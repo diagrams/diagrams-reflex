@@ -7,10 +7,10 @@ resolver: ghcjs-0.1.0.20150924_ghc-7.10.2
 packages:
   - '.'
   - location:
-      git: git@github.com:ryantrinkle/reflex-dom
+      git: https://github.com/ryantrinkle/reflex-dom
       commit: d778094352f99c5fa59770710eb6accb141550eb
   - location:
-      git: git@github.com:reflex-frp/reflex-dom-contrib
+      git: https://github.com/reflex-frp/reflex-dom-contrib
       commit: 531ce8b85ada1b10d5c79ff096d0aa8b0476b636
 
 # Packages to be pulled from upstream that are not in the resolver (e.g., acme-missiles-0.3)
