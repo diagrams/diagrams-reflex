@@ -2,23 +2,14 @@ module Main where
 
 import Diagrams.Prelude
 import Diagrams.Backend.Reflex
-import Reflex.Dom.Contrib.Widgets.Svg
 import Reflex
 import Reflex.Dom
 
 import           Control.Concurrent
-import           Control.Monad
-import           Control.Monad.Trans
-import           Control.Monad.Trans.Reader
-import           Data.Char
 import           GHCJS.DOM
 import           GHCJS.DOM.Document
-import           GHCJS.DOM.Element
-import           GHCJS.DOM.EventM (preventDefault, eventTarget)
 import           GHCJS.DOM.HTMLDocument
 import           GHCJS.DOM.HTMLElement
-import           Reflex.Dom hiding (getKeyEvent)
-import           Reflex.Dom.Contrib.KeyEvent
 
 main :: IO ()
 main = appMain app
