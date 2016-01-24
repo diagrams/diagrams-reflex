@@ -44,8 +44,9 @@ waitUntilJust a = do
         waitUntilJust a
 
 ------------------------------------------------------------------------------
-appMain app = runWebGUI $ \webView -> do
+-- | Launch a Reflex app when the page loads
+appMain reflexApp = runWebGUI $ \webView -> do
     doc <- waitUntilJust $ fmap (fmap castToHTMLDocument) $
       webViewGetDomDocument webView
-    body <- waitUntilJust $ fmap (fmap castToHTMLElement) $ documentGetBody doc
-    attachWidget body webView app
+    body <- waitUntilJust $ fmap (fmap castToHTMLElement) $ getBody doc
+    attachWidget body webView reflexApp
