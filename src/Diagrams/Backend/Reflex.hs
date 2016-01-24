@@ -156,6 +156,7 @@ instance Default (Options ReflexSvg V2 Double) where
 data DiaEv t a = DiaEv
                  { diaMousedownEv :: Event t a
                  , diaMouseupEv :: Event t a
+                 , diaMousemoveEv :: Event t a
                  }
 
 reflexDia :: forall t m a. (Monoid' a, MonadWidget t m) =>
