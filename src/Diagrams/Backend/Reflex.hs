@@ -162,10 +162,13 @@ data DiaEv t a = DiaEv
 reflexDia :: forall t m a. (Monoid' a, MonadWidget t m) =>
              Options ReflexSvg V2 Double -> QDiagram ReflexSvg V2 Double a -> m (DiaEv t a)
 reflexDia opts dia = do
-  (evs, _) <- svgAttr' n as $ mapM_ mkWidget cs
-  let md = domEvent Mousedown evs
-  let mu = domEvent Mouseup evs
-  return $ DiaEv (annotate <$> md) (annotate <$> mu)
-    where
-      (t, (Element n as cs)) = renderDiaT ReflexSvg opts dia
-      annotate = Diagrams.Prelude.sample dia . transform (inv t) . fmap fromIntegral . p2
+  -- render SVG, get stream with al events
+  let (t, (Element n as cs)) = renderDiaT ReflexSvg opts dia
+  (allEvents, _) <- svgAttr' n as $ mapM_ mkWidget cs
+  -- particular event streams
+  let
+    q :: forall en. EventResultType en ~ (Int, Int) => EventName en -> Event t a
+    q eventType = annotate <$> domEvent eventType allEvents
+    annotate :: (Int, Int) -> a
+    annotate = Diagrams.Prelude.sample dia . transform (inv t) . fmap fromIntegral . p2
+  return $ DiaEv (q Mousedown) (q Mouseup) (q Mousemove)
