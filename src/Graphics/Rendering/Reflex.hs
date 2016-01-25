@@ -50,7 +50,7 @@ import           Data.Foldable               (foldMap)
 import           Data.Monoid
 
 -- from mtl
-import Control.Monad.Reader
+import Control.Monad.Reader as R
 
 -- from diagrams-lib
 import           Diagrams.Prelude            hiding (Attribute, Render, with,
@@ -59,7 +59,8 @@ import           Diagrams.TwoD.Path          (getFillRule)
 import           Diagrams.TwoD.Text
 
 -- from containers
-import Data.Map (Map, singleton)
+import Data.Map (Map)
+import qualified Data.Map as M
 
 -- from base64-bytestring, bytestring
 -- import qualified Data.ByteString.Base64.Lazy as BS64
@@ -84,9 +85,11 @@ getNumAttr :: AttributeClass (a Double) => (a Double -> t) -> Style v Double -> 
 getNumAttr f = (f <$>) . getAttr
 
 renderPath :: Path V2 Double -> RenderM
-renderPath trs = if makePath == ""
-                 then return []
-                 else return $ [ Element "path" (singleton "d" makePath) [] ]
+renderPath trs
+    | makePath == "" = return []
+    | otherwise = do
+        sty <- ask
+        return [ Element "path" (M.insert "d" makePath $ renderStyles sty) [] ]
   where
     makePath = foldMap renderTrail (op Path trs)
 
@@ -113,11 +116,11 @@ renderSeg (Cubic  (V2 x0 y0) (V2 x1 y1) (OffsetClosed (V2 x2 y2))) =
   concat [ " c ", show x0, ",", show y0, " ", show x1, ",", show y1
          , " ", show x2, " ", show y2]
 
-renderStyles :: Int -> Int -> Style v Double -> Attrs
-renderStyles _fillId _lineId s = foldMap ($ s) $
+renderStyles :: Style v Double -> Attrs
+renderStyles s = foldMap ($ s) $
   -- [ renderLineTexture lineId
-  -- , renderFillTexture fillId
-  [ renderLineWidth
+  [ renderFillTexture
+  , renderLineWidth
   , renderLineCap
   , renderLineJoin
   , renderFillRule
@@ -209,7 +212,33 @@ renderFontFamily s = renderTextAttr  "font-family" ff
 
 -- | Render a style attribute if available, empty otherwise.
 renderAttr :: Show s => String -> Maybe s -> Attrs
-renderAttr attrName valM = maybe mempty (\v -> singleton attrName $ show v) valM
+renderAttr attrName valM = maybe mempty (\v -> M.singleton attrName $ show v) valM
 
 renderTextAttr :: String -> Maybe AttributeValue -> Attrs
-renderTextAttr attrName valM = maybe mempty (\v -> singleton attrName v) valM
+renderTextAttr attrName valM = maybe mempty (\v -> M.singleton attrName v) valM
+
+-- TODO add gradients
+-- | Render solid colors, ignore gradients for now.
+renderFillTexture :: Style v Double -> Attrs
+renderFillTexture s = case getNumAttr getFillTexture s of
+  Just (SC (SomeColor c)) ->
+    M.fromList [("fill", fillColorRgb), ("fill-opacity", fillColorOpacity)]
+    where
+      fillColorRgb     = colorToRgbString c
+      fillColorOpacity = colorToOpacity c
+  _     -> mempty
+
+colorToRgbString :: forall c . Color c => c -> String
+colorToRgbString c = concat
+  [ "rgb("
+  , int r, ","
+  , int g, ","
+  , int b
+  , ")" ]
+ where
+   int d     = show $ (round (d * 255) :: Int)
+   (r,g,b,_) = colorToSRGBA c
+
+colorToOpacity :: forall c . Color c => c -> String
+colorToOpacity c = show a
+ where (_,_,_,a) = colorToSRGBA c
