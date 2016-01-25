@@ -1,4 +1,5 @@
 {-# LANGUAGE RecursiveDo #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Main where
 
@@ -18,18 +19,24 @@ main = appMain app
 
 app :: MonadWidget t m => m ()
 app = mdo
+  svgDyn <- mapDyn (reflexDia $ def & sizeSpec .~ dims2D 500 1000) diaDyn
   -- pos :: Event (V2 Double)
-  pos <- switchPromptly never <$> fmap diaMousemovePos =<< dyn =<< mapDyn (reflexDia def) diaDyn
+  pos <- switchPromptly never <$> fmap diaMousemovePos =<< dyn svgDyn
   -- diaDyn :: Dynamic (Diagram B)
   diaDyn <- holdDyn mempty (mkDia <$> pos)
   return ()
 
-mkDia :: P2 Double -> Diagram B
-mkDia p = c <> square 100 where
-  c = moveTo p (circle 5) # fc green
+-- TODO generalize and move into diagrams-lib
+constrain :: (InSpace V2 Double a, Enveloped a) =>
+             a -> P2 Double -> P2 Double
+constrain a p = maybe p c $ getCorners box where
+  c (l,h) = max l (min h p)
+  box = boundingBox a
 
--- fromLast :: a -> Option (Last a) -> a
--- fromLast a = option a getLast
+mkDia :: P2 Double -> Diagram B
+mkDia p = c <> bg where
+  c = moveTo (constrain bg p) (circle 15) # fc green
+  bg = vcat [ square 1000 # fc cyan, square 1000 # fc yellow ]
 
 ------------------------------------------------------------------------------
 waitUntilJust :: IO (Maybe a) -> IO a
