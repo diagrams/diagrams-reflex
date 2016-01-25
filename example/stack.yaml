@@ -19,10 +19,6 @@ packages:
       git: https://github.com/ryantrinkle/reflex-dom.git
       commit: 639d9ca13c2def075e83344c9afca6eafaf24219 # ghcjs-improved-base-2 branch
     extra-dep: true
-  # - location:
-  #     git: https://github.com/reflex-frp/reflex-dom-contrib.git
-  #     commit: 9650c93b47612068ecb4a5bb677cb8e6db393cb1
-  #   extra-dep: true
   - location:
       git: https://github.com/ryantrinkle/reflex.git
       commit: cc62c11a6cde31412582758c236919d4bb766ada
@@ -34,9 +30,6 @@ packages:
   
 # Packages to be pulled from upstream that are not in the resolver (e.g., acme-missiles-0.3)
 extra-deps:
-  # - 'reflex-dom-contrib-0.4'
-  # - 'reflex-dom-0.2'
-  # - 'reflex-0.3.2'
   - ref-tf-0.4
   - these-0.6.1.0
   - ghcjs-dom-0.2.3.0
