@@ -129,7 +129,10 @@ instance Backend ReflexSvg V2 Double where
                        , ("height", show h) ]
               <> _svgAttributes opts
 
-  adjustDia c opts d = adjustDia2D sizeSpec c opts (d # reflectY)
+  adjustDia c opts d = (opts & sizeSpec .~ spec, t, d # transform t) where
+    spec = dims sz
+    t = t' <> translationY (-h) <> reflectionY -- order matters!
+    (sz@(V2 _ h), t') = sizeAdjustment (opts ^. sizeSpec) (boundingBox d)
 
 -- | Lens onto the size of the options.
 sizeSpec :: Lens' (Options ReflexSvg V2 Double) (SizeSpec V2 Double)
