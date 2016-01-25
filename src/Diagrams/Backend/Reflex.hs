@@ -157,6 +157,9 @@ data DiaEv t a = DiaEv
                  { diaMousedownEv :: Event t a
                  , diaMouseupEv :: Event t a
                  , diaMousemoveEv :: Event t a
+                 , diaMousedownPos :: Event t (P2 Double)
+                 , diaMouseupPos :: Event t (P2 Double)
+                 , diaMousemovePos :: Event t (P2 Double)
                  }
 
 reflexDia :: forall t m a. (Monoid' a, MonadWidget t m) =>
@@ -168,7 +171,13 @@ reflexDia opts dia = do
   -- particular event streams
   let
     q :: forall en. EventResultType en ~ (Int, Int) => EventName en -> Event t a
-    q eventType = annotate <$> domEvent eventType allEvents
-    annotate :: (Int, Int) -> a
-    annotate = Diagrams.Prelude.sample dia . transform (inv t) . fmap fromIntegral . p2
-  return $ DiaEv (q Mousedown) (q Mouseup) (q Mousemove)
+    q eventType = Diagrams.Prelude.sample dia <$> pos eventType
+    pos :: forall en. EventResultType en ~ (Int, Int) => EventName en -> Event t (P2 Double)
+    pos en = transform (inv t) . fmap fromIntegral . p2 <$> domEvent en allEvents
+  return $ DiaEv
+    (q Mousedown)
+    (q Mouseup)
+    (q Mousemove)
+    (pos Mousedown)
+    (pos Mouseup)
+    (pos Mousemove)
