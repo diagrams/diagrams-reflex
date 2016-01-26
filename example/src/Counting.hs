@@ -16,7 +16,7 @@ main = appMain app
 
 app :: MonadWidget t m => m ()
 app = do
-  ev <- reflexDia def (circle 100)
+  ev <- reflexDia def (circle 100 # lc blue # lwL 2)
   ct <- count . ffilter getAny $ diaMousedownEv ev
   dynText =<< mapDyn counter ct
   return ()

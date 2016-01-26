@@ -118,8 +118,8 @@ renderSeg (Cubic  (V2 x0 y0) (V2 x1 y1) (OffsetClosed (V2 x2 y2))) =
 
 renderStyles :: Style v Double -> Attrs
 renderStyles s = foldMap ($ s) $
-  -- [ renderLineTexture lineId
-  [ renderFillTexture
+  [ renderLineTexture
+  , renderFillTexture
   , renderLineWidth
   , renderLineCap
   , renderLineJoin
@@ -227,6 +227,15 @@ renderFillTexture s = case getNumAttr getFillTexture s of
       fillColorRgb     = colorToRgbString c
       fillColorOpacity = colorToOpacity c
   _     -> mempty
+
+renderLineTexture :: Style v Double -> Attrs
+renderLineTexture s = case getNumAttr getLineTexture s of
+  Just (SC (SomeColor c)) -> M.fromList
+    [ ("stroke", lineColorRgb), ("stroke-opacity", lineColorOpacity) ]
+    where
+      lineColorRgb     = colorToRgbString c
+      lineColorOpacity = colorToOpacity c
+  _ -> mempty
 
 colorToRgbString :: forall c . Color c => c -> String
 colorToRgbString c = concat
