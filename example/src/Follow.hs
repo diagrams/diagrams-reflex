@@ -3,10 +3,10 @@
 
 module Main where
 
-import Diagrams.Prelude
-import Diagrams.Backend.Reflex
-import Reflex
-import Reflex.Dom
+import Diagrams.Prelude as D
+import Diagrams.Backend.Reflex as DR
+import Reflex as R
+import Reflex.Dom as R
 
 import           Control.Concurrent
 import           GHCJS.DOM
@@ -36,7 +36,7 @@ constrain a p = maybe p c $ getCorners box where
 
 mkDia :: P2 Double -> Diagram B
 mkDia p = c <> bg where
-  c = moveTo (constrain bg p) (circle 15) # fc green
+  c = moveTo (constrain bg p) (D.text "Hello") # fc green
   bg = vcat [ square 1000 # fc cyan, square 1000 # fc yellow ]
 
 ------------------------------------------------------------------------------
