@@ -42,40 +42,25 @@ module Diagrams.Backend.Reflex
 #if __GLASGOW_HASKELL__ < 710
 import           Data.Foldable            as F (foldMap)
 #endif
-import qualified Data.Text                as T
-import           Data.Text.Lazy.IO        as LT
 import           Data.Tree
-import           System.FilePath
 
 -- from base
 import           Control.Monad.Reader
-import           Control.Monad.State
-import           Data.Char
-import           Data.Typeable
-
--- from hashable
-import           Data.Hashable            (Hashable (), hashWithSalt)
-
--- from bytestring
-import qualified Data.ByteString          as SBS
-import qualified Data.ByteString.Lazy     as BS
 
 -- from lens
-import           Control.Lens             hiding (transform, ( # ))
+import           Control.Lens             hiding (children, transform, ( # ))
 
 -- from diagrams-core
 import           Diagrams.Core.Compile
 import           Diagrams.Core.Types      (Annotation (..))
 
 -- from diagrams-lib
-import           Diagrams.Prelude         hiding (Attribute, size, view, local)
+import           Diagrams.Prelude         hiding (Attribute, size, view, local, text)
 import           Diagrams.TwoD.Adjust     (adjustDia2D)
-import           Diagrams.TwoD.Attributes (splitTextureFills)
-import           Diagrams.TwoD.Path       (Clip (Clip))
-import           Diagrams.TwoD.Text
+import           Diagrams.TwoD.Text (Text(..))
 
 -- from containers
-import Data.Map (Map, singleton, fromList)
+import qualified Data.Map as M
 
 -- from reflex
 import Reflex
@@ -125,7 +110,7 @@ instance Backend ReflexSvg V2 Double where
         where
           r = foldMap rtree rs
       V2 w h = specToSize 100 . view sizeSpec $ opts
-      attrs = fromList [ ("width", show w)
+      attrs = M.fromList [ ("width", show w)
                        , ("height", show h) ]
               <> _svgAttributes opts
 
