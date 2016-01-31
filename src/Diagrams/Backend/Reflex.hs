@@ -143,13 +143,17 @@ svgAttributes f opts =
   f (_svgAttributes opts) <&> \ds -> opts { _svgAttributes = ds }
 
 mkWidget :: forall t m. MonadWidget t m => Element -> m ()
-mkWidget (Element el attrs children) = svgAttr el attrs (mapM_ mkWidget children)
+mkWidget (Element name attrs children) = svgAttr name attrs (mapM_ mkWidget children)
+mkWidget (SvgText str) = text str
 
 unRender :: Render ReflexSvg V2 Double -> RenderM
 unRender (Render els) = els
 
 instance Renderable (Path V2 Double) ReflexSvg where
   render _ = Render . R.renderPath
+
+instance Renderable (Text Double) ReflexSvg where
+  render _ = Render . R.renderText
 
 instance Default (Options ReflexSvg V2 Double) where
   def = ReflexOptions absolute mempty

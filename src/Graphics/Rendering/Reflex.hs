@@ -28,7 +28,7 @@ module Graphics.Rendering.Reflex
     -- , svgHeader
     , renderPath
     -- , renderClip
-    -- , renderText
+    , renderText
     -- , renderDImage
     -- , renderDImageEmb
     , renderStyles
@@ -47,16 +47,14 @@ import           Data.List                   (intercalate)
 import           Data.Foldable               (foldMap)
 #endif
 
-import           Data.Monoid
-
 -- from mtl
 import Control.Monad.Reader as R
 
 -- from diagrams-lib
-import           Diagrams.Prelude            hiding (Attribute, Render, with,
-                                              (<>))
+import           Diagrams.Prelude            hiding (Attribute, Render, with, text)
 import           Diagrams.TwoD.Path          (getFillRule)
 import           Diagrams.TwoD.Text
+import           Diagrams.Core.Transform     (matrixHomRep)
 
 -- from containers
 import Data.Map (Map)
@@ -70,12 +68,13 @@ data Element = Element
                String -- ^ SVG element name
                (Map String String) -- ^ Attributes
                [Element] -- ^ Children
+  | SvgText String
 
 type RenderM = Reader (Style V2 Double) [Element]
 
 instance Monoid RenderM where
   mempty = return []
-  mappend r1 r2 = mappend <$> r1 <*> r2
+  mappend a b = mappend <$> a <*> b
 
 type AttributeValue = String
 
@@ -115,6 +114,37 @@ renderSeg (Linear (OffsetClosed (V2 x y))) = concat [ "l ", show x, ",", show y,
 renderSeg (Cubic  (V2 x0 y0) (V2 x1 y1) (OffsetClosed (V2 x2 y2))) =
   concat [ " c ", show x0, ",", show y0, " ", show x1, ",", show y1
          , " ", show x2, " ", show y2]
+
+renderText :: Text Double -> RenderM
+renderText (Text tt tAlign str) = return [ Element "text" attrs [ SvgText str ] ]
+  where
+   attrs = M.fromList
+     [ ("transform", transformMatrix)
+     , ("dominant_baseline", vAlign)
+     , ("text_anchor", hAlign)
+     , ("stroke", "none")
+     ]
+   vAlign = case tAlign of
+     BaselineText -> "alphabetic"
+     BoxAlignedText _ h -> case h of -- A mere approximation
+       h' | h' <= 0.25 -> "text-after-edge"
+       h' | h' >= 0.75 -> "text-before-edge"
+       _ -> "middle"
+   hAlign = case tAlign of
+     BaselineText -> "start"
+     BoxAlignedText w _ -> case w of -- A mere approximation
+       w' | w' <= 0.25 -> "start"
+       w' | w' >= 0.75 -> "end"
+       _ -> "middle"
+   t                   = tt <> reflectionY
+   [[a,b],[c,d],[e,f]] = matrixHomRep t
+   transformMatrix     = matrix a b c d e f
+
+-- | Specifies a transform in the form of a transformation matrix
+matrix :: (Show a, RealFloat a) =>  a -> a -> a -> a -> a -> a -> String
+matrix a b c d e f =  concat
+  [ "matrix(", show a, ",", show b, ",",  show c
+  , ",",  show d, ",", show e, ",",  show f, ")"]
 
 renderStyles :: Style v Double -> Attrs
 renderStyles s = foldMap ($ s) $
