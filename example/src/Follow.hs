@@ -35,9 +35,13 @@ constrain a p = maybe p c $ getCorners box where
   box = boundingBox a
 
 mkDia :: P2 Double -> Diagram B
-mkDia p = c <> bg where
-  c = moveTo (constrain bg p) (D.text "Hello") # fc green
-  bg = vcat [ square 1000 # fc cyan, square 1000 # fc yellow ]
+mkDia p = arr <> c <> back where
+  arr = arrowBetween'
+    (def & arrowHead .~ dart & arrowTail .~ quill )
+    origin p'
+  c = moveTo p' $ D.text "Hello" # fc green
+  p' = constrain back p
+  back = vcat [ square 1000 # fc cyan, square 1000 # fc yellow ]
 
 ------------------------------------------------------------------------------
 waitUntilJust :: IO (Maybe a) -> IO a
