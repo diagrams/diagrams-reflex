@@ -14,7 +14,7 @@ import           GHCJS.DOM.HTMLDocument
 import           GHCJS.DOM.HTMLElement
 
 main :: IO ()
-main = appMain app
+main = mainWidget app
 
 app :: MonadWidget t m => m ()
 app = mdo
@@ -62,21 +62,3 @@ countC Blank cs = cs
 annotate :: Monoid c => c -> Any -> c
 annotate c a | getAny a = c
 annotate _ _ = mempty
-
-------------------------------------------------------------------------------
-waitUntilJust :: IO (Maybe a) -> IO a
-waitUntilJust a = do
-    mx <- a
-    case mx of
-      Just x -> return x
-      Nothing -> do
-        threadDelay 10000
-        waitUntilJust a
-
-------------------------------------------------------------------------------
--- | Launch a Reflex app when the page loads
-appMain reflexApp = runWebGUI $ \webView -> do
-    doc <- waitUntilJust $ fmap (fmap castToHTMLDocument) $
-      webViewGetDomDocument webView
-    body <- waitUntilJust $ fmap (fmap castToHTMLElement) $ getBody doc
-    attachWidget body webView reflexApp
