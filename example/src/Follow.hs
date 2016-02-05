@@ -28,8 +28,8 @@ app = mdo
   return ()
 
 -- TODO generalize and move into diagrams-lib
-constrain :: (InSpace V2 Double a, Enveloped a) =>
-             a -> P2 Double -> P2 Double
+constrain :: (InSpace v n a, Enveloped a, HasBasis v, Num n, Ord (v n)) =>
+             a -> Point v n -> Point v n
 constrain a p = maybe p c $ getCorners box where
   c (l,h) = max l (min h p)
   box = boundingBox a
