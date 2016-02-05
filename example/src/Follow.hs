@@ -24,7 +24,7 @@ app = mdo
   -- pos :: Event (V2 Double)
   pos <- switchPromptly never <$> fmap diaMousemovePos =<< dyn svgDyn
   -- diaDyn :: Dynamic (Diagram B)
-  diaDyn <- holdDyn mempty (mkDia <$> pos)
+  diaDyn <- holdDyn (mkDia origin) (mkDia <$> pos)
   return ()
 
 -- TODO generalize and move into diagrams-lib
