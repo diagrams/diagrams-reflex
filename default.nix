@@ -7,7 +7,7 @@
 mkDerivation {
   pname = "diagrams-reflex";
   version = "0.1";
-  src = ./.;
+  src = builtins.filterSource (path: type: baseNameOf path != ".git") ./.;
   buildDepends = [
     base base64-bytestring bytestring colour containers diagrams-core
     diagrams-lib directory filepath hashable JuicyPixels lens
