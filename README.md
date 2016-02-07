@@ -18,3 +18,10 @@ git clone git@github.com:diagrams/diagrams-reflex
 cd diagrams-reflex
 stack build
 ```
+
+# Examples
+
+The examples directory contains several simple examples.  Running
+versions of these examples (and others, not all using `reflex`) are
+online at
+[http://bergey.github.io/gooey](http://bergey.github.io/gooey).
