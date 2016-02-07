@@ -14,7 +14,7 @@ Build-type:          Simple
 Cabal-version:       >=1.10
 Description:         This package provides a modular backend for rendering
                      diagrams created with the diagrams EDSL to dynamic inline SVGs.
-                     It uses @reflex-dom@.
+                     It uses @reflex-dom@ and the @reflex@ FRP system.
 Source-repository head
   type:     git
   location: http://github.com/diagrams/diagrams-reflex
