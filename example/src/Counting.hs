@@ -5,12 +5,6 @@ import Diagrams.Backend.Reflex
 import Reflex
 import Reflex.Dom
 
-import           Control.Concurrent
-import           GHCJS.DOM
-import           GHCJS.DOM.Document
-import           GHCJS.DOM.HTMLDocument
-import           GHCJS.DOM.HTMLElement
-
 main :: IO ()
 main = mainWidget app
 
