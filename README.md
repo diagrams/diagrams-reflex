@@ -25,3 +25,23 @@ The examples directory contains several simple examples.  Running
 versions of these examples (and others, not all using `reflex`) are
 online at
 [http://bergey.github.io/gooey](http://bergey.github.io/gooey).
+
+# Capabilities
+
+The following features are supported.  If they don't work as expected
+(or as other Diagrams Backends), please file a bug report.
+
+    - fill color (solid only)
+    - line color
+    - line width
+    - line cap & join
+    - dashing
+    - opacity
+    - Paths
+    - Text
+    - mouse events
+    - font weight
+
+These features are not yet implemented.  Pull requests welcome!
+
+    - textures
