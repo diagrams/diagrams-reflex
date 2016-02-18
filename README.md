@@ -16,7 +16,20 @@ domain-specific language for creating vector graphics, using the
 ```
 git clone git@github.com:diagrams/diagrams-reflex
 cd diagrams-reflex
+```
+
+Pick one of the build methods below.
+
+## With stack
+
+```
 stack build
+```
+
+## wiith  [reflex-platform](https://github.com/reflex-frp/reflex-platform)
+
+```
+work-on ./ghcjs.nix ./.
 ```
 
 # Examples
