@@ -42,40 +42,25 @@ module Diagrams.Backend.Reflex
 #if __GLASGOW_HASKELL__ < 710
 import           Data.Foldable            as F (foldMap)
 #endif
-import qualified Data.Text                as T
-import           Data.Text.Lazy.IO        as LT
 import           Data.Tree
-import           System.FilePath
 
 -- from base
 import           Control.Monad.Reader
-import           Control.Monad.State
-import           Data.Char
-import           Data.Typeable
-
--- from hashable
-import           Data.Hashable            (Hashable (), hashWithSalt)
-
--- from bytestring
-import qualified Data.ByteString          as SBS
-import qualified Data.ByteString.Lazy     as BS
 
 -- from lens
-import           Control.Lens             hiding (transform, ( # ))
+import           Control.Lens             hiding (children, transform, ( # ))
 
 -- from diagrams-core
 import           Diagrams.Core.Compile
 import           Diagrams.Core.Types      (Annotation (..))
 
 -- from diagrams-lib
-import           Diagrams.Prelude         hiding (Attribute, size, view, local)
+import           Diagrams.Prelude         hiding (Attribute, size, view, local, text)
 import           Diagrams.TwoD.Adjust     (adjustDia2D)
-import           Diagrams.TwoD.Attributes (splitTextureFills)
-import           Diagrams.TwoD.Path       (Clip (Clip))
-import           Diagrams.TwoD.Text
+import           Diagrams.TwoD.Text (Text(..))
 
 -- from containers
-import Data.Map (Map, singleton, fromList)
+import qualified Data.Map as M
 
 -- from reflex
 import Reflex
@@ -125,11 +110,12 @@ instance Backend ReflexSvg V2 Double where
         where
           r = foldMap rtree rs
       V2 w h = specToSize 100 . view sizeSpec $ opts
-      attrs = fromList [ ("width", show w)
+      attrs = M.fromList [ ("width", show w)
                        , ("height", show h) ]
               <> _svgAttributes opts
 
-  adjustDia c opts d = adjustDia2D sizeSpec c opts (d # reflectY)
+  adjustDia c opts d = ( sz, t <> reflectionY, d' ) where
+    (sz, t, d') = adjustDia2D sizeSpec c opts (d # reflectY)
 
 -- | Lens onto the size of the options.
 sizeSpec :: Lens' (Options ReflexSvg V2 Double) (SizeSpec V2 Double)
@@ -142,7 +128,8 @@ svgAttributes f opts =
   f (_svgAttributes opts) <&> \ds -> opts { _svgAttributes = ds }
 
 mkWidget :: forall t m. MonadWidget t m => Element -> m ()
-mkWidget (Element el attrs children) = svgAttr el attrs (mapM_ mkWidget children)
+mkWidget (Element name attrs children) = svgAttr name attrs (mapM_ mkWidget children)
+mkWidget (SvgText str) = text str
 
 unRender :: Render ReflexSvg V2 Double -> RenderM
 unRender (Render els) = els
@@ -150,21 +137,37 @@ unRender (Render els) = els
 instance Renderable (Path V2 Double) ReflexSvg where
   render _ = Render . R.renderPath
 
+instance Renderable (Text Double) ReflexSvg where
+  render _ = Render . R.renderText
+
 instance Default (Options ReflexSvg V2 Double) where
   def = ReflexOptions absolute mempty
 
 data DiaEv t a = DiaEv
                  { diaMousedownEv :: Event t a
                  , diaMouseupEv :: Event t a
+                 , diaMousemoveEv :: Event t a
+                 , diaMousedownPos :: Event t (P2 Double)
+                 , diaMouseupPos :: Event t (P2 Double)
+                 , diaMousemovePos :: Event t (P2 Double)
                  }
 
 reflexDia :: forall t m a. (Monoid' a, MonadWidget t m) =>
              Options ReflexSvg V2 Double -> QDiagram ReflexSvg V2 Double a -> m (DiaEv t a)
 reflexDia opts dia = do
-  (evs, _) <- svgAttr' n as $ mapM_ mkWidget cs
-  let md = domEvent Mousedown evs
-  let mu = domEvent Mouseup evs
-  return $ DiaEv (annotate <$> md) (annotate <$> mu)
-    where
-      (t, (Element n as cs)) = renderDiaT ReflexSvg opts dia
-      annotate = Diagrams.Prelude.sample dia . transform (inv t) . fmap fromIntegral . p2
+  -- render SVG, get stream with al events
+  let (t, (Element n as cs)) = renderDiaT ReflexSvg opts dia
+  (allEvents, _) <- svgAttr' n as $ mapM_ mkWidget cs
+  -- particular event streams
+  let
+    q :: forall en. EventResultType en ~ (Int, Int) => EventName en -> Event t a
+    q eventType = Diagrams.Prelude.sample dia <$> pos eventType
+    pos :: forall en. EventResultType en ~ (Int, Int) => EventName en -> Event t (P2 Double)
+    pos en = transform (inv t) . fmap fromIntegral . p2 <$> domEvent en allEvents
+  return $ DiaEv
+    (q Mousedown)
+    (q Mouseup)
+    (q Mousemove)
+    (pos Mousedown)
+    (pos Mouseup)
+    (pos Mousemove)

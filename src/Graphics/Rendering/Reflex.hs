@@ -28,7 +28,7 @@ module Graphics.Rendering.Reflex
     -- , svgHeader
     , renderPath
     -- , renderClip
-    -- , renderText
+    , renderText
     -- , renderDImage
     -- , renderDImageEmb
     , renderStyles
@@ -47,19 +47,18 @@ import           Data.List                   (intercalate)
 import           Data.Foldable               (foldMap)
 #endif
 
-import           Data.Monoid
-
 -- from mtl
-import Control.Monad.Reader
+import Control.Monad.Reader as R
 
 -- from diagrams-lib
-import           Diagrams.Prelude            hiding (Attribute, Render, with,
-                                              (<>))
+import           Diagrams.Prelude            hiding (Attribute, Render, with, text)
 import           Diagrams.TwoD.Path          (getFillRule)
 import           Diagrams.TwoD.Text
+import           Diagrams.Core.Transform     (matrixHomRep)
 
 -- from containers
-import Data.Map (Map, singleton)
+import Data.Map (Map)
+import qualified Data.Map as M
 
 -- from base64-bytestring, bytestring
 -- import qualified Data.ByteString.Base64.Lazy as BS64
@@ -69,12 +68,13 @@ data Element = Element
                String -- ^ SVG element name
                (Map String String) -- ^ Attributes
                [Element] -- ^ Children
+  | SvgText String
 
 type RenderM = Reader (Style V2 Double) [Element]
 
 instance Monoid RenderM where
   mempty = return []
-  mappend r1 r2 = mappend <$> r1 <*> r2
+  mappend a b = mappend <$> a <*> b
 
 type AttributeValue = String
 
@@ -84,9 +84,11 @@ getNumAttr :: AttributeClass (a Double) => (a Double -> t) -> Style v Double -> 
 getNumAttr f = (f <$>) . getAttr
 
 renderPath :: Path V2 Double -> RenderM
-renderPath trs = if makePath == ""
-                 then return []
-                 else return $ [ Element "path" (singleton "d" makePath) [] ]
+renderPath trs
+    | makePath == "" = return []
+    | otherwise = do
+        sty <- ask
+        return [ Element "path" (M.insert "d" makePath $ renderStyles sty) [] ]
   where
     makePath = foldMap renderTrail (op Path trs)
 
@@ -113,11 +115,42 @@ renderSeg (Cubic  (V2 x0 y0) (V2 x1 y1) (OffsetClosed (V2 x2 y2))) =
   concat [ " c ", show x0, ",", show y0, " ", show x1, ",", show y1
          , " ", show x2, " ", show y2]
 
-renderStyles :: Int -> Int -> Style v Double -> Attrs
-renderStyles _fillId _lineId s = foldMap ($ s) $
-  -- [ renderLineTexture lineId
-  -- , renderFillTexture fillId
-  [ renderLineWidth
+renderText :: Text Double -> RenderM
+renderText (Text tt tAlign str) = return [ Element "text" attrs [ SvgText str ] ]
+  where
+   attrs = M.fromList
+     [ ("transform", transformMatrix)
+     , ("dominant_baseline", vAlign)
+     , ("text_anchor", hAlign)
+     , ("stroke", "none")
+     ]
+   vAlign = case tAlign of
+     BaselineText -> "alphabetic"
+     BoxAlignedText _ h -> case h of -- A mere approximation
+       h' | h' <= 0.25 -> "text-after-edge"
+       h' | h' >= 0.75 -> "text-before-edge"
+       _ -> "middle"
+   hAlign = case tAlign of
+     BaselineText -> "start"
+     BoxAlignedText w _ -> case w of -- A mere approximation
+       w' | w' <= 0.25 -> "start"
+       w' | w' >= 0.75 -> "end"
+       _ -> "middle"
+   t                   = tt <> reflectionY
+   [[a,b],[c,d],[e,f]] = matrixHomRep t
+   transformMatrix     = matrix a b c d e f
+
+-- | Specifies a transform in the form of a transformation matrix
+matrix :: (Show a, RealFloat a) =>  a -> a -> a -> a -> a -> a -> String
+matrix a b c d e f =  concat
+  [ "matrix(", show a, ",", show b, ",",  show c
+  , ",",  show d, ",", show e, ",",  show f, ")"]
+
+renderStyles :: Style v Double -> Attrs
+renderStyles s = foldMap ($ s) $
+  [ renderLineTexture
+  , renderFillTexture
+  , renderLineWidth
   , renderLineCap
   , renderLineJoin
   , renderFillRule
@@ -209,7 +242,42 @@ renderFontFamily s = renderTextAttr  "font-family" ff
 
 -- | Render a style attribute if available, empty otherwise.
 renderAttr :: Show s => String -> Maybe s -> Attrs
-renderAttr attrName valM = maybe mempty (\v -> singleton attrName $ show v) valM
+renderAttr attrName valM = maybe mempty (\v -> M.singleton attrName $ show v) valM
 
 renderTextAttr :: String -> Maybe AttributeValue -> Attrs
-renderTextAttr attrName valM = maybe mempty (\v -> singleton attrName v) valM
+renderTextAttr attrName valM = maybe mempty (\v -> M.singleton attrName v) valM
+
+-- TODO add gradients
+-- | Render solid colors, ignore gradients for now.
+renderFillTexture :: Style v Double -> Attrs
+renderFillTexture s = case getNumAttr getFillTexture s of
+  Just (SC (SomeColor c)) ->
+    M.fromList [("fill", fillColorRgb), ("fill-opacity", fillColorOpacity)]
+    where
+      fillColorRgb     = colorToRgbString c
+      fillColorOpacity = colorToOpacity c
+  _     -> mempty
+
+renderLineTexture :: Style v Double -> Attrs
+renderLineTexture s = case getNumAttr getLineTexture s of
+  Just (SC (SomeColor c)) -> M.fromList
+    [ ("stroke", lineColorRgb), ("stroke-opacity", lineColorOpacity) ]
+    where
+      lineColorRgb     = colorToRgbString c
+      lineColorOpacity = colorToOpacity c
+  _ -> mempty
+
+colorToRgbString :: forall c . Color c => c -> String
+colorToRgbString c = concat
+  [ "rgb("
+  , int r, ","
+  , int g, ","
+  , int b
+  , ")" ]
+ where
+   int d     = show $ (round (d * 255) :: Int)
+   (r,g,b,_) = colorToSRGBA c
+
+colorToOpacity :: forall c . Color c => c -> String
+colorToOpacity c = show a
+ where (_,_,_,a) = colorToSRGBA c

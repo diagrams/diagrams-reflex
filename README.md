@@ -16,5 +16,45 @@ domain-specific language for creating vector graphics, using the
 ```
 git clone git@github.com:diagrams/diagrams-reflex
 cd diagrams-reflex
+```
+
+Pick one of the build methods below.
+
+## With stack
+
+```
 stack build
 ```
+
+## wiith  [reflex-platform](https://github.com/reflex-frp/reflex-platform)
+
+```
+work-on ./ghcjs.nix ./.
+```
+
+# Examples
+
+The examples directory contains several simple examples.  Running
+versions of these examples (and others, not all using `reflex`) are
+online at
+[http://bergey.github.io/gooey](http://bergey.github.io/gooey).
+
+# Capabilities
+
+The following features are supported.  If they don't work as expected
+(or as other Diagrams Backends), please file a bug report.
+
+    - fill color (solid only)
+    - line color
+    - line width
+    - line cap & join
+    - dashing
+    - opacity
+    - Paths
+    - Text
+    - mouse events
+    - font weight
+
+These features are not yet implemented.  Pull requests welcome!
+
+    - textures
