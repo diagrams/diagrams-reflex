@@ -65,9 +65,9 @@ import qualified Data.Map as M
 -- import qualified Data.ByteString.Lazy.Char8  as BS8
 
 data Element = Element
-               String -- ^ SVG element name
-               (Map String String) -- ^ Attributes
-               [Element] -- ^ Children
+               String
+               (Map String String)
+               [Element]
   | SvgText String
 
 type RenderM = Reader (Style V2 Double) [Element]
