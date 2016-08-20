@@ -26,11 +26,14 @@ Pick one of the build methods below.
 stack build
 ```
 
-## wiith  [reflex-platform](https://github.com/reflex-frp/reflex-platform)
+## with [reflex-platform](https://github.com/reflex-frp/reflex-platform) ##
 
 ```
+cd examples
 work-on ./ghcjs.nix ./.
 ```
+
+The `work-on` script can be found [in the top-level directory of reflex-platform](https://github.com/reflex-frp/reflex-platform/blob/develop/work-on).
 
 # Examples
 
