@@ -29,7 +29,7 @@ stack build
 ## with [reflex-platform](https://github.com/reflex-frp/reflex-platform) ##
 
 ```
-cd examples
+cd example
 work-on ./ghcjs.nix ./.
 ```
 
