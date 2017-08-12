@@ -13,12 +13,12 @@ main = mainWidget app
 app :: MonadWidget t m => m ()
 app = mdo
   -- svgDyn :: Dynamic t (m (DiaEv C)
-  svgDyn <- mapDyn (reflexDia $ def & sizeSpec .~ mkWidth 400) diaDyn
+  let svgDyn = fmap (reflexDia $ def & sizeSpec .~ mkWidth 400) diaDyn
   -- clicks :: Event t C
   clicks <- switchPromptly never <$> fmap diaMousedownEv =<< dyn svgDyn
   counts <- foldDyn countC mempty clicks
   -- diaDyn <- holdDyn (mkDia mempty) (mkDia <$> counts)
-  diaDyn <- mapDyn mkDia counts
+  let diaDyn = fmap mkDia counts
   return ()
 
 mkDia :: Counts -> QDiagram B V2 Double C
