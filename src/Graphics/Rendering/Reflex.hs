@@ -42,33 +42,40 @@ module Graphics.Rendering.Reflex
     ) where
 
 -- from base
-import           Data.List                   (intercalate)
 #if __GLASGOW_HASKELL__ < 710
 import           Data.Foldable               (foldMap)
 #endif
 
 -- from mtl
-import Control.Monad.Reader as R
+import           Control.Monad.Reader as R
+
+-- from text
+import           Data.Text (Text)
+import qualified Data.Text as T
 
 -- from diagrams-lib
 import           Diagrams.Prelude            hiding (Attribute, Render, with, text)
 import           Diagrams.TwoD.Path          (getFillRule)
-import           Diagrams.TwoD.Text
+import           Diagrams.TwoD.Text          hiding (Text)
+import qualified Diagrams.TwoD.Text          as D2T
 import           Diagrams.Core.Transform     (matrixHomRep)
 
 -- from containers
-import Data.Map (Map)
+import           Data.Map (Map)
 import qualified Data.Map as M
 
 -- from base64-bytestring, bytestring
 -- import qualified Data.ByteString.Base64.Lazy as BS64
 -- import qualified Data.ByteString.Lazy.Char8  as BS8
 
+tshow :: Show a => a -> Text
+tshow = T.pack . show
+
 data Element = Element
-               String
-               (Map String String)
+               Text
+               (Map Text Text)
                [Element]
-  | SvgText String
+  | SvgText Text
 
 type RenderM = Reader (Style V2 Double) [Element]
 
@@ -76,9 +83,9 @@ instance Monoid RenderM where
   mempty = return []
   mappend a b = mappend <$> a <*> b
 
-type AttributeValue = String
+type AttributeValue = Text
 
-type Attrs = Map String String
+type Attrs = Map Text Text
 
 getNumAttr :: AttributeClass (a Double) => (a Double -> t) -> Style v Double -> Maybe t
 getNumAttr f = (f <$>) . getAttr
@@ -94,7 +101,7 @@ renderPath trs
 
 renderTrail :: Located (Trail V2 Double) -> AttributeValue
 renderTrail (viewLoc -> (P (V2 x y), t)) =
-  concat [ "M " , show x, ",",  show y, " " ]
+  T.concat [ "M " , tshow x, ",",  tshow y, " " ]
   <> withTrail renderLine renderLoop t
   where
     renderLine = foldMap renderSeg . lineSegments
@@ -108,15 +115,15 @@ renderTrail (viewLoc -> (P (V2 x y), t)) =
       <> "Z"
 
 renderSeg :: Segment Closed V2 Double -> AttributeValue
-renderSeg (Linear (OffsetClosed (V2 x 0))) = concat [ "h ", show x, " "]
-renderSeg (Linear (OffsetClosed (V2 0 y))) = concat [ "v ", show y, " " ]
-renderSeg (Linear (OffsetClosed (V2 x y))) = concat [ "l ", show x, ",", show y, " "]
+renderSeg (Linear (OffsetClosed (V2 x 0))) = T.concat [ "h ", tshow x, " "]
+renderSeg (Linear (OffsetClosed (V2 0 y))) = T.concat [ "v ", tshow y, " " ]
+renderSeg (Linear (OffsetClosed (V2 x y))) = T.concat [ "l ", tshow x, ",", tshow y, " "]
 renderSeg (Cubic  (V2 x0 y0) (V2 x1 y1) (OffsetClosed (V2 x2 y2))) =
-  concat [ " c ", show x0, ",", show y0, " ", show x1, ",", show y1
-         , " ", show x2, " ", show y2]
+  T.concat [ " c ", tshow x0, ",", tshow y0, " ", tshow x1, ",", tshow y1
+           , " ", tshow x2, " ", tshow y2]
 
-renderText :: Text Double -> RenderM
-renderText (Text tt tAlign str) = return [ Element "text" attrs [ SvgText str ] ]
+renderText :: D2T.Text Double -> RenderM
+renderText (D2T.Text tt tAlign str) = return [ Element "text" attrs [ SvgText (T.pack str) ] ]
   where
    attrs = M.fromList
      [ ("transform", transformMatrix)
@@ -141,10 +148,10 @@ renderText (Text tt tAlign str) = return [ Element "text" attrs [ SvgText str ] 
    transformMatrix     = matrix a b c d e f
 
 -- | Specifies a transform in the form of a transformation matrix
-matrix :: (Show a, RealFloat a) =>  a -> a -> a -> a -> a -> a -> String
-matrix a b c d e f =  concat
-  [ "matrix(", show a, ",", show b, ",",  show c
-  , ",",  show d, ",", show e, ",",  show f, ")"]
+matrix :: (Show a, RealFloat a) =>  a -> a -> a -> a -> a -> a -> Text
+matrix a b c d e f = T.concat
+  [ "matrix(", tshow a, ",", tshow b, ",",  tshow c
+  , ",",  tshow d, ",", tshow e, ",",  tshow f, ")"]
 
 renderStyles :: Style v Double -> Attrs
 renderStyles s = foldMap ($ s) $
@@ -202,21 +209,21 @@ renderLineJoin s = renderTextAttr "stroke-linejoin" lj
 renderDashing :: Style v Double -> Attrs
 renderDashing s = renderTextAttr "stroke-dasharray" arr <>
                   renderAttr "stroke-dashoffset" dOffset
- where
-  getDasharray  (Dashing a _) = a
-  getDashoffset (Dashing _ o) = o
-  dashArrayToStr              = intercalate "," . map show
-  -- Ignore dashing if dashing array is empty
-  checkEmpty (Just (Dashing [] _)) = Nothing
-  checkEmpty other                 = other
-  dashing'                    = checkEmpty $ getNumAttr getDashing s
-  arr                         = (dashArrayToStr . getDasharray) <$> dashing'
-  dOffset                     = getDashoffset <$> dashing'
+  where
+    getDasharray  (Dashing a _) = a
+    getDashoffset (Dashing _ o) = o
+    dashArrayToText             = T.intercalate "," . map tshow
+    -- Ignore dashing if dashing array is empty
+    checkEmpty (Just (Dashing [] _)) = Nothing
+    checkEmpty other                 = other
+    dashing'                    = checkEmpty $ getNumAttr getDashing s
+    arr                         = (dashArrayToText . getDasharray) <$> dashing'
+    dOffset                     = getDashoffset <$> dashing'
 
 renderFontSize :: Style v Double -> Attrs
 renderFontSize s = renderTextAttr "font-size" fs
  where
-  fs = getNumAttr ((++ "px") . show . getFontSize) s
+  fs = getNumAttr (T.pack . (++ "px") . show . getFontSize) s
 
 renderFontSlant :: Style v Double -> Attrs
 renderFontSlant s = renderTextAttr "font-style" fs
@@ -232,19 +239,28 @@ renderFontWeight s = renderTextAttr "font-weight" fw
  where
   fw = (fontWeightAttr . getFontWeight) <$> getAttr s
   fontWeightAttr :: FontWeight -> AttributeValue
-  fontWeightAttr FontWeightNormal = "normal"
-  fontWeightAttr FontWeightBold   = "bold"
+  fontWeightAttr FontWeightUltraLight = "100"
+  fontWeightAttr FontWeightLight      = "200"
+  fontWeightAttr FontWeightThin       = "300"
+  fontWeightAttr FontWeightNormal     = "normal"
+  fontWeightAttr FontWeightMedium     = "500"
+  fontWeightAttr FontWeightSemiBold   = "600"
+  fontWeightAttr FontWeightBold       = "bold"
+  fontWeightAttr FontWeightUltraBold  = "800"
+  fontWeightAttr FontWeightHeavy      = "900"
+  fontWeightAttr FontWeightLighter    = "lighter"
+  fontWeightAttr FontWeightBolder     = "bolder"
 
 renderFontFamily :: Style v Double -> Attrs
-renderFontFamily s = renderTextAttr  "font-family" ff
+renderFontFamily s = renderTextAttr "font-family" ff
  where
-  ff = (getFont) <$> getAttr s
+  ff = (T.pack . getFont) <$> getAttr s
 
 -- | Render a style attribute if available, empty otherwise.
-renderAttr :: Show s => String -> Maybe s -> Attrs
-renderAttr attrName valM = maybe mempty (\v -> M.singleton attrName $ show v) valM
+renderAttr :: Show s => Text -> Maybe s -> Attrs
+renderAttr attrName valM = maybe mempty (\v -> M.singleton attrName $ tshow v) valM
 
-renderTextAttr :: String -> Maybe AttributeValue -> Attrs
+renderTextAttr :: Text -> Maybe AttributeValue -> Attrs
 renderTextAttr attrName valM = maybe mempty (\v -> M.singleton attrName v) valM
 
 -- TODO add gradients
@@ -254,7 +270,7 @@ renderFillTexture s = case getNumAttr getFillTexture s of
   Just (SC (SomeColor c)) ->
     M.fromList [("fill", fillColorRgb), ("fill-opacity", fillColorOpacity)]
     where
-      fillColorRgb     = colorToRgbString c
+      fillColorRgb     = colorToRgbText c
       fillColorOpacity = colorToOpacity c
   _     -> mempty
 
@@ -263,21 +279,21 @@ renderLineTexture s = case getNumAttr getLineTexture s of
   Just (SC (SomeColor c)) -> M.fromList
     [ ("stroke", lineColorRgb), ("stroke-opacity", lineColorOpacity) ]
     where
-      lineColorRgb     = colorToRgbString c
+      lineColorRgb     = colorToRgbText c
       lineColorOpacity = colorToOpacity c
   _ -> mempty
 
-colorToRgbString :: forall c . Color c => c -> String
-colorToRgbString c = concat
+colorToRgbText :: forall c . Color c => c -> Text
+colorToRgbText c = T.concat
   [ "rgb("
   , int r, ","
   , int g, ","
   , int b
   , ")" ]
  where
-   int d     = show $ (round (d * 255) :: Int)
+   int d     = tshow $ (round (d * 255) :: Int)
    (r,g,b,_) = colorToSRGBA c
 
-colorToOpacity :: forall c . Color c => c -> String
-colorToOpacity c = show a
+colorToOpacity :: forall c . Color c => c -> Text
+colorToOpacity c = tshow a
  where (_,_,_,a) = colorToSRGBA c

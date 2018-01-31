@@ -57,24 +57,32 @@ import           Diagrams.Core.Types      (Annotation (..))
 -- from diagrams-lib
 import           Diagrams.Prelude         hiding (Attribute, size, view, local, text)
 import           Diagrams.TwoD.Adjust     (adjustDia2D)
-import           Diagrams.TwoD.Text (Text(..))
+import qualified Diagrams.TwoD.Text       as D2T
 
 -- from containers
 import qualified Data.Map as M
 
 -- from reflex
-import Reflex
+import           Reflex
 
 -- from reflex-dom
-import Reflex.Dom.Class
-import Reflex.Dom.Widget.Basic
+import           Reflex.Dom.Builder.Class (EventName (..), EventResultType, domEvent)
+import           Reflex.Dom.Old (MonadWidget)
+import           Reflex.Dom.Widget.Basic
 
 -- from reflex-dom-contrib
-import Reflex.Dom.Contrib.Widgets.Svg
+import           Reflex.Dom.Contrib.Widgets.Svg
+
+-- from text
+import           Data.Text (Text)
+import qualified Data.Text as T
 
 -- from this package
 import           Graphics.Rendering.Reflex   (Element(..), RenderM)
 import qualified Graphics.Rendering.Reflex   as R
+
+tshow :: Show a => a -> Text
+tshow = T.pack . show
 
 -- | @ReflexSvg@ is simply a token used to identify this rendering backend
 --   (to aid type inference).
@@ -110,8 +118,8 @@ instance Backend ReflexSvg V2 Double where
         where
           r = foldMap rtree rs
       V2 w h = specToSize 100 . view sizeSpec $ opts
-      attrs = M.fromList [ ("width", show w)
-                       , ("height", show h) ]
+      attrs = M.fromList [ ("width", tshow w)
+                       , ("height", tshow h) ]
               <> _svgAttributes opts
 
   adjustDia c opts d = ( sz, t <> reflectionY, d' ) where
@@ -137,7 +145,7 @@ unRender (Render els) = els
 instance Renderable (Path V2 Double) ReflexSvg where
   render _ = Render . R.renderPath
 
-instance Renderable (Text Double) ReflexSvg where
+instance Renderable (D2T.Text Double) ReflexSvg where
   render _ = Render . R.renderText
 
 instance Default (Options ReflexSvg V2 Double) where
@@ -155,7 +163,7 @@ data DiaEv t a = DiaEv
 reflexDia :: forall t m a. (Monoid' a, MonadWidget t m) =>
              Options ReflexSvg V2 Double -> QDiagram ReflexSvg V2 Double a -> m (DiaEv t a)
 reflexDia opts dia = do
-  -- render SVG, get stream with al events
+  -- render SVG, get stream with all events
   let (t, (Element n as cs)) = renderDiaT ReflexSvg opts dia
   (allEvents, _) <- svgAttr' n as $ mapM_ mkWidget cs
   -- particular event streams
