@@ -27,7 +27,6 @@ module Diagrams.Backend.SVG.Attributes (
   ) where
 
 import         Diagrams.Core.Style (AttributeClass, HasStyle, applyAttr)
-import         Data.Semigroup
 import         Data.Typeable       (Typeable)
 
 -----------------------------------------------------------------

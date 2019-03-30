@@ -1,32 +1,31 @@
-{-# LANGUAGE RecursiveDo #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE RecursiveDo #-}
 
 module Main where
 
 import Diagrams.Prelude as D
-import Diagrams.Backend.Reflex as DR
-import Reflex as R
-import Reflex.Dom as R
+import Diagrams.Backend.Reflex
+import Language.Javascript.JSaddle.Warp (run)
+import Reflex
+import Reflex.Dom.Core
 
 main :: IO ()
-main = mainWidget app
+main = run 3000 (mainWidget app)
 
 app :: MonadWidget t m => m ()
 app = mdo
-  -- svgDyn :: Dynamic t (m (DiaEv Any))
   let svgDyn = fmap (reflexDia $ def & sizeSpec .~ dims2D 500 1000) diaDyn
-  -- pos :: Event (V2 Double)
-  pos <- switchPromptly never <$> fmap diaMousemovePos =<< dyn svgDyn
-  -- diaDyn :: Dynamic (Diagram B)
+  pos <- switchHoldPromptly never <$> fmap diaMousemovePos =<< dyn svgDyn
   diaDyn <- holdDyn (mkDia . p2 $ (0, -1000)) (mkDia <$> pos)
   return ()
 
 -- TODO generalize and move into diagrams-lib
-constrain :: (InSpace v n a, Enveloped a, HasBasis v, Num n, Ord (v n)) =>
+constrain :: (InSpace v n a, Enveloped a, HasBasis v, Ord (v n)) =>
              a -> Point v n -> Point v n
-constrain a p = maybe p c $ getCorners box where
-  c (l,h) = max l (min h p)
-  box = boundingBox a
+constrain a p = maybe p c (getCorners $ boundingBox a)
+  where
+    c (l, h) = max l (min h p)
 
 mkDia :: P2 Double -> Diagram B
 mkDia p = arr <> c <> back where

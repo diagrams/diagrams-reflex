@@ -1,23 +1,22 @@
+{-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE RecursiveDo #-}
 
 module Main where
 
 import Diagrams.Prelude as D
 import Diagrams.Backend.Reflex
+import Language.Javascript.JSaddle.Warp (run)
 import Reflex
-import Reflex.Dom
+import Reflex.Dom.Core
 
 main :: IO ()
-main = mainWidget app
+main = run 3000 (mainWidget app)
 
 app :: MonadWidget t m => m ()
 app = mdo
-  -- svgDyn :: Dynamic t (m (DiaEv C)
   let svgDyn = fmap (reflexDia $ def & sizeSpec .~ mkWidth 400) diaDyn
-  -- clicks :: Event t C
-  clicks <- switchPromptly never <$> fmap diaMousedownEv =<< dyn svgDyn
+  clicks <- switchHoldPromptly never <$> fmap diaMousedownEv =<< dyn svgDyn
   counts <- foldDyn countC mempty clicks
-  -- diaDyn <- holdDyn (mkDia mempty) (mkDia <$> counts)
   let diaDyn = fmap mkDia counts
   return ()
 
@@ -36,16 +35,17 @@ data C = Red | Green | Blue | Blank
 data Counts = Counts Int Int Int
 
 instance Semigroup C where
-  (<>) = mappend
+  Blank <> c = c
+  c <> _ = c
 
 instance Monoid C where
   mempty = Blank
-  mappend Blank c = c
-  mappend c _ = c
+
+instance Semigroup Counts where
+  (Counts a b c) <> (Counts d e f) = Counts (a+d) (b+e) (c+f)
 
 instance Monoid Counts where
   mempty = Counts 0 0 0
-  mappend (Counts a b c) (Counts d e f) = Counts (a+d) (b+e) (c+f)
 
 countC :: C -> Counts -> Counts
 countC  Red (Counts r g b) = Counts (r+1) g b
