@@ -99,8 +99,8 @@ renderText (D2T.Text tt tAlign str) = return [ Element "text" attrs [ SvgText (T
   where
    attrs = M.fromList
      [ ("transform", transformMatrix)
-     , ("dominant_baseline", vAlign)
-     , ("text_anchor", hAlign)
+     , ("dominant-baseline", vAlign)
+     , ("text-anchor", hAlign)
      , ("stroke", "none")
      ]
    vAlign = case tAlign of
