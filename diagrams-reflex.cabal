@@ -43,6 +43,5 @@ Library
                       -Wredundant-constraints
                       -Wmonomorphism-restriction
                       -fwarn-tabs
-                      -fdiagnostics-color=never
 
   Default-language:  Haskell2010
