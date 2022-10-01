@@ -1,13 +1,12 @@
-{-# LANGUAGE CPP               #-}
-{-# LANGUAGE ConstraintKinds   #-}
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE GADTs             #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes        #-}
-{-# LANGUAGE ViewPatterns      #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE ViewPatterns #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -21,67 +20,41 @@
 -----------------------------------------------------------------------------
 
 module Graphics.Rendering.Reflex
-    ( RenderM
-    , Element(..)
-    , Attrs
-    -- , AttributeValue
-    -- , svgHeader
-    , renderPath
-    -- , renderClip
-    , renderText
-    -- , renderDImage
-    -- , renderDImageEmb
-    , renderStyles
-    , renderMiterLimit
-    -- , renderFillTextureDefs
-    -- , renderFillTexture
-    -- , renderLineTextureDefs
-    -- , renderLineTexture
-    -- , dataUri
-    , getNumAttr
-    ) where
+  ( RenderM
+  , Element(..)
+  , Attrs
+  , renderPath
+  , renderText
+  , renderStyles
+  , renderMiterLimit
+  , getNumAttr
+  ) where
 
--- from base
-#if __GLASGOW_HASKELL__ < 710
-import           Data.Foldable               (foldMap)
-#endif
-
--- from mtl
 import           Control.Monad.Reader as R
-
--- from text
 import           Data.Text (Text)
 import qualified Data.Text as T
-
--- from diagrams-lib
 import           Diagrams.Prelude            hiding (Attribute, Render, with, text)
 import           Diagrams.TwoD.Path          (getFillRule)
 import           Diagrams.TwoD.Text          hiding (Text)
 import qualified Diagrams.TwoD.Text          as D2T
 import           Diagrams.Core.Transform     (matrixHomRep)
-
--- from containers
 import           Data.Map (Map)
 import qualified Data.Map as M
-
--- from base64-bytestring, bytestring
--- import qualified Data.ByteString.Base64.Lazy as BS64
--- import qualified Data.ByteString.Lazy.Char8  as BS8
 
 tshow :: Show a => a -> Text
 tshow = T.pack . show
 
-data Element = Element
-               Text
-               (Map Text Text)
-               [Element]
+data Element
+  = Element Text (Map Text Text) [Element]
   | SvgText Text
 
 type RenderM = Reader (Style V2 Double) [Element]
 
+instance Semigroup RenderM where
+  a <> b = (<>) <$> a <*> b
+
 instance Monoid RenderM where
   mempty = return []
-  mappend a b = mappend <$> a <*> b
 
 type AttributeValue = Text
 
@@ -92,27 +65,26 @@ getNumAttr f = (f <$>) . getAttr
 
 renderPath :: Path V2 Double -> RenderM
 renderPath trs
-    | makePath == "" = return []
-    | otherwise = do
-        sty <- ask
-        return [ Element "path" (M.insert "d" makePath $ renderStyles sty) [] ]
+  | makePath == "" = return []
+  | otherwise = do
+    sty <- ask
+    return [Element "path" (M.insert "d" makePath $ renderStyles sty) []]
   where
     makePath = foldMap renderTrail (op Path trs)
 
 renderTrail :: Located (Trail V2 Double) -> AttributeValue
 renderTrail (viewLoc -> (P (V2 x y), t)) =
-  T.concat [ "M " , tshow x, ",",  tshow y, " " ]
-  <> withTrail renderLine renderLoop t
+  T.concat ["M ", tshow x, ",", tshow y, " "] <>
+  withTrail renderLine renderLoop t
   where
     renderLine = foldMap renderSeg . lineSegments
     renderLoop lp =
-      case loopSegments lp of
+      case loopSegments lp
         -- let z handle the last segment if it is linear
+            of
         (segs, Linear _) -> foldMap renderSeg segs
-
         -- otherwise we have to emit it explicitly
-        _ -> foldMap renderSeg (lineSegments . cutLoop $ lp)
-      <> "Z"
+        _ -> foldMap renderSeg (lineSegments . cutLoop $ lp) <> "Z"
 
 renderSeg :: Segment Closed V2 Double -> AttributeValue
 renderSeg (Linear (OffsetClosed (V2 x 0))) = T.concat [ "h ", tshow x, " "]
@@ -127,8 +99,8 @@ renderText (D2T.Text tt tAlign str) = return [ Element "text" attrs [ SvgText (T
   where
    attrs = M.fromList
      [ ("transform", transformMatrix)
-     , ("dominant_baseline", vAlign)
-     , ("text_anchor", hAlign)
+     , ("dominant-baseline", vAlign)
+     , ("text-anchor", hAlign)
      , ("stroke", "none")
      ]
    vAlign = case tAlign of
@@ -148,13 +120,13 @@ renderText (D2T.Text tt tAlign str) = return [ Element "text" attrs [ SvgText (T
    transformMatrix     = matrix a b c d e f
 
 -- | Specifies a transform in the form of a transformation matrix
-matrix :: (Show a, RealFloat a) =>  a -> a -> a -> a -> a -> a -> Text
+matrix :: Show a =>  a -> a -> a -> a -> a -> a -> Text
 matrix a b c d e f = T.concat
   [ "matrix(", tshow a, ",", tshow b, ",",  tshow c
   , ",",  tshow d, ",", tshow e, ",",  tshow f, ")"]
 
 renderStyles :: Style v Double -> Attrs
-renderStyles s = foldMap ($ s) $
+renderStyles s = foldMap ($ s)
   [ renderLineTexture
   , renderFillTexture
   , renderLineWidth
@@ -167,24 +139,25 @@ renderStyles s = foldMap ($ s) $
   , renderFontSlant
   , renderFontWeight
   , renderFontFamily
-  -- , renderSvgId
-  -- , renderSvgClass
   , renderMiterLimit ]
 
 renderMiterLimit :: Style v Double -> Attrs
 renderMiterLimit s = renderAttr "stroke-miterlimit" miterLimit
- where miterLimit = getLineMiterLimit <$> getAttr s
+  where
+    miterLimit = getLineMiterLimit <$> getAttr s
 
 renderOpacity :: Style v Double -> Attrs
 renderOpacity s = renderAttr "opacity" o
- where o = getOpacity <$> getAttr s
+  where
+    o = getOpacity <$> getAttr s
 
 renderFillRule :: Style v Double -> Attrs
 renderFillRule s = renderTextAttr "fill-rule" fr
-  where fr = (fillRuleToText . getFillRule) <$> getAttr s
-        fillRuleToText :: FillRule -> AttributeValue
-        fillRuleToText Winding = "nonzero"
-        fillRuleToText EvenOdd = "evenodd"
+  where
+    fr = fillRuleToText . getFillRule <$> getAttr s
+    fillRuleToText :: FillRule -> AttributeValue
+    fillRuleToText Winding = "nonzero"
+    fillRuleToText EvenOdd = "evenodd"
 
 renderLineWidth :: Style v Double -> Attrs
 renderLineWidth s = renderAttr "stroke-width" lWidth
@@ -192,108 +165,105 @@ renderLineWidth s = renderAttr "stroke-width" lWidth
 
 renderLineCap :: Style v Double -> Attrs
 renderLineCap s = renderTextAttr "stroke-linecap" lCap
-  where lCap = (lineCapToText . getLineCap) <$> getAttr s
-        lineCapToText :: LineCap -> AttributeValue
-        lineCapToText LineCapButt   = "butt"
-        lineCapToText LineCapRound  = "round"
-        lineCapToText LineCapSquare = "square"
+  where
+    lCap = lineCapToText . getLineCap <$> getAttr s
+    lineCapToText :: LineCap -> AttributeValue
+    lineCapToText LineCapButt = "butt"
+    lineCapToText LineCapRound = "round"
+    lineCapToText LineCapSquare = "square"
 
 renderLineJoin :: Style v Double -> Attrs
 renderLineJoin s = renderTextAttr "stroke-linejoin" lj
-  where lj = (lineJoinToText . getLineJoin) <$> getAttr s
-        lineJoinToText :: LineJoin -> AttributeValue
-        lineJoinToText LineJoinMiter = "miter"
-        lineJoinToText LineJoinRound = "round"
-        lineJoinToText LineJoinBevel = "bevel"
+  where
+    lj = lineJoinToText . getLineJoin <$> getAttr s
+    lineJoinToText :: LineJoin -> AttributeValue
+    lineJoinToText LineJoinMiter = "miter"
+    lineJoinToText LineJoinRound = "round"
+    lineJoinToText LineJoinBevel = "bevel"
 
 renderDashing :: Style v Double -> Attrs
-renderDashing s = renderTextAttr "stroke-dasharray" arr <>
-                  renderAttr "stroke-dashoffset" dOffset
+renderDashing s =
+  renderTextAttr "stroke-dasharray" arr <>
+  renderAttr "stroke-dashoffset" dOffset
   where
-    getDasharray  (Dashing a _) = a
+    getDasharray (Dashing a _) = a
     getDashoffset (Dashing _ o) = o
-    dashArrayToText             = T.intercalate "," . map tshow
     -- Ignore dashing if dashing array is empty
     checkEmpty (Just (Dashing [] _)) = Nothing
-    checkEmpty other                 = other
-    dashing'                    = checkEmpty $ getNumAttr getDashing s
-    arr                         = (dashArrayToText . getDasharray) <$> dashing'
-    dOffset                     = getDashoffset <$> dashing'
+    checkEmpty other = other
+    dashing' = checkEmpty $ getNumAttr getDashing s
+    arr = T.intercalate "," . map tshow . getDasharray <$> dashing'
+    dOffset = getDashoffset <$> dashing'
 
 renderFontSize :: Style v Double -> Attrs
 renderFontSize s = renderTextAttr "font-size" fs
- where
-  fs = getNumAttr (T.pack . (++ "px") . show . getFontSize) s
+  where
+    fs = getNumAttr (T.pack . (++ "px") . show . getFontSize) s
 
 renderFontSlant :: Style v Double -> Attrs
 renderFontSlant s = renderTextAttr "font-style" fs
- where
-  fs = (fontSlantAttr . getFontSlant) <$> getAttr s
-  fontSlantAttr :: FontSlant -> AttributeValue
-  fontSlantAttr FontSlantItalic  = "italic"
-  fontSlantAttr FontSlantOblique = "oblique"
-  fontSlantAttr FontSlantNormal  = "normal"
+  where
+    fs = fontSlantAttr . getFontSlant <$> getAttr s
+    fontSlantAttr :: FontSlant -> AttributeValue
+    fontSlantAttr FontSlantItalic = "italic"
+    fontSlantAttr FontSlantOblique = "oblique"
+    fontSlantAttr FontSlantNormal = "normal"
 
 renderFontWeight :: Style v Double -> Attrs
 renderFontWeight s = renderTextAttr "font-weight" fw
- where
-  fw = (fontWeightAttr . getFontWeight) <$> getAttr s
-  fontWeightAttr :: FontWeight -> AttributeValue
-  fontWeightAttr FontWeightUltraLight = "100"
-  fontWeightAttr FontWeightLight      = "200"
-  fontWeightAttr FontWeightThin       = "300"
-  fontWeightAttr FontWeightNormal     = "normal"
-  fontWeightAttr FontWeightMedium     = "500"
-  fontWeightAttr FontWeightSemiBold   = "600"
-  fontWeightAttr FontWeightBold       = "bold"
-  fontWeightAttr FontWeightUltraBold  = "800"
-  fontWeightAttr FontWeightHeavy      = "900"
-  fontWeightAttr FontWeightLighter    = "lighter"
-  fontWeightAttr FontWeightBolder     = "bolder"
+  where
+    fw = fontWeightAttr . getFontWeight <$> getAttr s
+    fontWeightAttr :: FontWeight -> AttributeValue
+    fontWeightAttr FontWeightUltraLight = "100"
+    fontWeightAttr FontWeightLight = "200"
+    fontWeightAttr FontWeightThin = "300"
+    fontWeightAttr FontWeightNormal = "normal"
+    fontWeightAttr FontWeightMedium = "500"
+    fontWeightAttr FontWeightSemiBold = "600"
+    fontWeightAttr FontWeightBold = "bold"
+    fontWeightAttr FontWeightUltraBold = "800"
+    fontWeightAttr FontWeightHeavy = "900"
+    fontWeightAttr FontWeightLighter = "lighter"
+    fontWeightAttr FontWeightBolder = "bolder"
 
 renderFontFamily :: Style v Double -> Attrs
 renderFontFamily s = renderTextAttr "font-family" ff
- where
-  ff = (T.pack . getFont) <$> getAttr s
+  where
+    ff = T.pack . getFont <$> getAttr s
 
 -- | Render a style attribute if available, empty otherwise.
 renderAttr :: Show s => Text -> Maybe s -> Attrs
-renderAttr attrName valM = maybe mempty (\v -> M.singleton attrName $ tshow v) valM
+renderAttr attrName = maybe mempty (M.singleton attrName . tshow)
 
 renderTextAttr :: Text -> Maybe AttributeValue -> Attrs
-renderTextAttr attrName valM = maybe mempty (\v -> M.singleton attrName v) valM
+renderTextAttr attrName = maybe mempty (M.singleton attrName)
 
 -- TODO add gradients
 -- | Render solid colors, ignore gradients for now.
 renderFillTexture :: Style v Double -> Attrs
-renderFillTexture s = case getNumAttr getFillTexture s of
-  Just (SC (SomeColor c)) ->
-    M.fromList [("fill", fillColorRgb), ("fill-opacity", fillColorOpacity)]
-    where
-      fillColorRgb     = colorToRgbText c
-      fillColorOpacity = colorToOpacity c
-  _     -> mempty
+renderFillTexture s =
+  case getNumAttr getFillTexture s of
+    Just (SC (SomeColor c)) ->
+      M.fromList [("fill", fillColorRgb), ("fill-opacity", fillColorOpacity)]
+      where fillColorRgb = colorToRgbText c
+            fillColorOpacity = colorToOpacity c
+    _ -> mempty
 
 renderLineTexture :: Style v Double -> Attrs
-renderLineTexture s = case getNumAttr getLineTexture s of
-  Just (SC (SomeColor c)) -> M.fromList
-    [ ("stroke", lineColorRgb), ("stroke-opacity", lineColorOpacity) ]
-    where
-      lineColorRgb     = colorToRgbText c
-      lineColorOpacity = colorToOpacity c
-  _ -> mempty
+renderLineTexture s =
+  case getNumAttr getLineTexture s of
+    Just (SC (SomeColor c)) ->
+      M.fromList
+        [("stroke", colorToRgbText c), ("stroke-opacity", colorToOpacity c)]
+    _ -> mempty
 
 colorToRgbText :: forall c . Color c => c -> Text
-colorToRgbText c = T.concat
-  [ "rgb("
-  , int r, ","
-  , int g, ","
-  , int b
-  , ")" ]
- where
-   int d     = tshow $ (round (d * 255) :: Int)
-   (r,g,b,_) = colorToSRGBA c
+colorToRgbText c = T.concat ["rgb(", int r, ",", int g, ",", int b, ")"]
+  where
+    int d = tshow (round (d * 255) :: Int)
+    (r, g, b, _) = colorToSRGBA c
 
 colorToOpacity :: forall c . Color c => c -> Text
 colorToOpacity c = tshow a
- where (_,_,_,a) = colorToSRGBA c
+  where
+    (_, _, _, a) = colorToSRGBA c

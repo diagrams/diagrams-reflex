@@ -13,3 +13,6 @@ TAGS
 .cabal-sandbox
 cabal.sandbox.config
 .stack-work
+.ghc.environment*
+dist-newstyle
+.direnv/
