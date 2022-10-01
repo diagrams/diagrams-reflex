@@ -22,13 +22,14 @@ Source-repository head
 
 Library
   Exposed-modules:     Diagrams.Backend.Reflex
-  Other-modules:       Graphics.Rendering.Reflex
+  Other-modules:       Graphics.Rendering.Reflex, Diagrams.Backend.Reflex.FFI
   Hs-source-dirs:      src
   Build-depends:       base
                      , colour
                      , containers
                      , diagrams-core
                      , diagrams-lib
+                     , jsaddle
                      , jsaddle-warp
                      , lens
                      , mtl

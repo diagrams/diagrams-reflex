@@ -16,3 +16,5 @@ cabal.sandbox.config
 .ghc.environment*
 dist-newstyle
 .direnv/
+.hix-flake/
+hie.yaml
