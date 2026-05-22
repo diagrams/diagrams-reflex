@@ -30,7 +30,6 @@ Library
                      , diagrams-core
                      , diagrams-lib
                      , jsaddle
-                     , jsaddle-warp
                      , lens
                      , mtl
                      , reflex
